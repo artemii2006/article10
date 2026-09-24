@@ -13,10 +13,9 @@
 
 Сдвиг на год = 12 месяцев. В excess_returns.csv строка с датой t содержит
 доходность, реализованную за период с t по t+12, то есть цель для прогноза,
-сделанного в момент t. Для последних 12 строк выборки эта доходность берётся
-из доходностей уже за пределами окна (файл Liu-Wu идёт до 2025 года), так что
-пропусков нет, но на этапе оценки важно помнить: прогноз с датой t
-использует информацию, известную в t, а реализуется он в t+12.
+сделанного в момент t. Для последних 12 месяцев окна такая доходность
+реализовалась бы уже за его пределами, поэтому там стоит NaN: выборка статьи
+заканчивается в 2018:12, значит последний прогноз делается в 2017:12.
 
 Запуск:  python -m src.data.build_datasets
 """
@@ -130,6 +129,11 @@ def main(start: str = DEFAULT_START, end: str = DEFAULT_END, balanced: bool = Tr
     forwards = build_forward_rates(yields).loc[window]
     excess = build_excess_returns(yields).loc[window]
     macro = build_macro_panel().loc[window]
+
+    # Доходность за год владения, начатый позже чем за 12 месяцев до конца окна,
+    # реализуется уже вне выборки — такие цели не используем.
+    last_origin = pd.Period(end, freq="M") - HORIZON
+    excess.loc[excess.index > last_origin] = np.nan
 
     if balanced:
         incomplete = macro.columns[macro.isna().any()].tolist()
