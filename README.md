@@ -15,6 +15,26 @@ notebooks/         — исследовательские ноутбуки
 results/           — итоговые таблицы, графики
 ```
 
+## Данные
+
+| Источник | Что это | Где взять |
+|---|---|---|
+| Liu & Wu (2021), JFE 142(3) | месячные бескупонные доходности США, сроки 1–360 мес. | [страница J. C. Wu](https://sites.google.com/view/jingcynthiawu/yield-data) |
+| FRED-MD (McCracken & Ng) | месячная макропанель | [St. Louis Fed](https://www.stlouisfed.org/research/economists/mccracken/fred-databases) |
+
+Выборка статьи — 1971:08–2018:12 (569 месяцев): 10-летние ноты выпускаются с сентября 1971,
+что и определяет начало периода.
+
+```bash
+python -m src.data.download_raw     # в data_raw/
+python -m src.data.build_datasets   # в data_processed/
+```
+
+Из `data_processed/` получаются: `forward_rates.csv` (f¹…f¹⁰), `excess_returns.csv`
+(rx²…rx¹⁰ за год владения, строка датирована моментом прогноза t) и `macro_panel.csv`
+(FRED-MD после трансформаций `tcode`, без стандартизации — её считаем только по
+обучающей части на каждом шаге expanding window).
+
 ## Пайплайн
 
 1. **Данные** (`src/data`): скачать доходности и FRED-MD в `data_raw/`, построить
