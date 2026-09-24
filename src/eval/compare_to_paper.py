@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.eval.run_table1 import GAP, MATURITIES
+
 ROOT = Path(__file__).resolve().parents[2]
 RESULTS_DIR = ROOT / "results"
-
-MATURITIES = [2, 3, 4, 5, 7, 10]
 
 # R²_oos в процентах: rx(2), rx(3), rx(4), rx(5), rx(7), rx(10), равновзвешенный
 PUBLISHED = {
@@ -30,8 +30,8 @@ PUBLISHED = {
 }
 
 
-def main(gap: int = 1) -> None:
-    mine = pd.read_csv(RESULTS_DIR / f"table1_panels_ab_raw_gap{gap}.csv").set_index("model")
+def main():
+    mine = pd.read_csv(RESULTS_DIR / f"table1_panels_ab_raw_gap{GAP}.csv").set_index("model")
     columns = [f"r2_{n}" for n in MATURITIES] + ["r2_ew"]
     labels = [f"rx_{n}" for n in MATURITIES] + ["EW"]
 
@@ -68,8 +68,4 @@ def main(gap: int = 1) -> None:
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--gap", type=int, default=1)
-    main(**vars(parser.parse_args()))
+    main()

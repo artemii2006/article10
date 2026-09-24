@@ -1,8 +1,9 @@
 """Таблица 1, панели A и B: прогноз избыточных доходностей по форвардным ставкам.
 
 Первый прогноз делается в 1989:01 и реализуется в 1990:01, последний — в 2018:12.
+GAP=1 воспроизводит статью, GAP=12 убирает заглядывание вперёд.
 
-Запуск:  python -m src.eval.run_table1 [--gap 12]
+Запуск:  python -m src.eval.run_table1
 """
 
 from functools import partial
@@ -11,8 +12,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.eval.expanding_window import forecast
-from src.eval.metrics import clark_west, r2_oos
+from src.eval.backtest import clark_west, forecast, r2_oos
 from src.models.linear import (
     ENET_GRID,
     LASSO_GRID,
@@ -30,6 +30,7 @@ RESULTS_DIR = ROOT / "results"
 
 MATURITIES = [2, 3, 4, 5, 7, 10]
 FIRST_ORIGIN = pd.Period("1989-01", freq="M")
+GAP = 1
 
 SPECIFICATIONS = [
     ("PCA (10 components)", partial(pcr, n_components=10), None),
@@ -53,13 +54,13 @@ def load_data():
     return forwards, excess[[f"rx_{n}" for n in MATURITIES]]
 
 
-def run_specification(name, predict, grid, X, excess, gap):
+def run_specification(name, predict, grid, X, excess):
     row = {"model": name}
     predictions = {}
 
     for n in MATURITIES:
         result, _ = forecast(
-            X, excess[f"rx_{n}"], predict, grid=grid, gap=gap, first_origin=FIRST_ORIGIN
+            X, excess[f"rx_{n}"], predict, grid=grid, gap=GAP, first_origin=FIRST_ORIGIN
         )
         predictions[n] = result
         row[f"r2_{n}"] = r2_oos(result.actual, result.forecast, result.benchmark)
@@ -83,13 +84,13 @@ def format_table(results):
     return out
 
 
-def main(gap=1):
+def main():
     RESULTS_DIR.mkdir(exist_ok=True)
     forwards, excess = load_data()
 
     rows, n_obs = [], None
     for name, predict, grid in SPECIFICATIONS:
-        row, n_obs = run_specification(name, predict, grid, forwards, excess, gap)
+        row, n_obs = run_specification(name, predict, grid, forwards, excess)
         rows.append(row)
         print(
             f"{name:38s} "
@@ -98,14 +99,10 @@ def main(gap=1):
         )
 
     results = pd.DataFrame(rows)
-    results.to_csv(RESULTS_DIR / f"table1_panels_ab_raw_gap{gap}.csv", index=False)
-    format_table(results).to_csv(RESULTS_DIR / f"table1_panels_ab_gap{gap}.csv")
+    results.to_csv(RESULTS_DIR / f"table1_panels_ab_raw_gap{GAP}.csv", index=False)
+    format_table(results).to_csv(RESULTS_DIR / f"table1_panels_ab_gap{GAP}.csv")
     print(f"\nпрогнозов вне выборки: {n_obs} (реализации 1990:01-2018:12)")
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--gap", type=int, default=1)
-    main(**vars(parser.parse_args()))
+    main()
